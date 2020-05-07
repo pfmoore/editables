@@ -1,0 +1,3 @@
+# setuptools-scm by default adds all SCM tracked files, we prune the following maintenance related ones (sdist only)
+exclude .gitignore
+exclude MANIFEST.in
