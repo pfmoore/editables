@@ -19,7 +19,12 @@ def build_project(to, structure):
 def test_editable_expose_hide(tmp_path, capfd):
     # create example
     project = tmp_path / "project"
-    structure = {"foo": {"__init__.py": "print('foo')", "bar": {"__init__.py": "print('foo.bar')"}}}
+    structure = {
+        "foo": {
+            "__init__.py": "print('foo')",
+            "bar": {"__init__.py": "print('foo.bar')"},
+        }
+    }
     build_project(project, structure)
 
     # install to a virtual environment

@@ -1,7 +1,7 @@
 import inspect
 import os
-
 from pathlib import Path
+
 from . import install_hook
 
 __all__ = (
@@ -12,6 +12,7 @@ __all__ = (
 __version__ = "0.1"
 
 _TEMPLATE = inspect.getsource(install_hook)
+
 
 def build_editable(location, expose=None, hide=None):
     """Generate files that can be added to a wheel to expose packages from a directory.
@@ -47,7 +48,10 @@ def build_editable(location, expose=None, hide=None):
 
     for pkg in expose:
         code = _TEMPLATE
-        for of, to in {'""  # location of replacement': location, '""  # excludes': hide}.items():
+        for of, to in {
+            '""  # location of replacement': location,
+            '""  # excludes': hide,
+        }.items():
             code = code.replace(of, repr(str(to)))
         code += "_bootstrap(){}".format(os.linesep)
         yield "{}.py".format(pkg), code

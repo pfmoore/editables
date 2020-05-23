@@ -1,10 +1,11 @@
+import importlib.util
 import os
 import sys
-import importlib.util
-from importlib.machinery import FileFinder, SourceFileLoader, SOURCE_SUFFIXES
+from importlib.machinery import SOURCE_SUFFIXES, FileFinder, SourceFileLoader
 
 location = os.path.abspath(os.path.join(os.path.dirname(__file__), "data"))
 excludes = "foo.bar"
+
 
 class BackendImporter(FileFinder):
     """Allow imports included, disallow import excluded"""
@@ -14,10 +15,12 @@ class BackendImporter(FileFinder):
             raise ImportError(f"{fullname} is excluded from packaging")
         return super().find_spec(fullname, target)
 
+
 def finder(path):
     if path.startswith(os.path.join(location, __name__)):
         return BackendImporter(path, (SourceFileLoader, SOURCE_SUFFIXES))
     raise ImportError
+
 
 sys.path_hooks.insert(0, finder)
 
