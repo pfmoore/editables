@@ -30,3 +30,5 @@ def _bootstrap():
     module = importlib.util.module_from_spec(spec)
     sys.modules[__name__] = module
     spec.loader.exec_module(module)
+
+_bootstrap()

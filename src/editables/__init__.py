@@ -1,8 +1,6 @@
-import inspect
+import pkgutil
 import os
 from pathlib import Path
-
-from . import install_hook
 
 __all__ = (
     "build_editable",
@@ -11,7 +9,7 @@ __all__ = (
 
 __version__ = "0.1"
 
-_TEMPLATE = inspect.getsource(install_hook)
+_TEMPLATE = pkgutil.get_data(__package__, "install_hook.py").decode("utf-8")
 
 
 def build_editable(location, expose=None, hide=None):
@@ -46,5 +44,5 @@ def build_editable(location, expose=None, hide=None):
             '""  # excludes': hide,
         }.items():
             code = code.replace(of, repr(to))
-        code += "_bootstrap(){}".format(os.linesep)
+
         yield "{}.py".format(pkg), code

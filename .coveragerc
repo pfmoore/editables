@@ -21,3 +21,5 @@ branch = false
 parallel = true
 source =
     ${_COVERAGE_SRC}
+omit =
+    */install_hook.py
