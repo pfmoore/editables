@@ -34,17 +34,10 @@ def build_editable(location, expose=None, hide=None):
 
     location = Path(location)
 
-    if expose:
-        for e in expose:
-            if not (location / e / "__init__.py").is_file():
-                raise ValueError("{} is not a package in {}".format(e, location))
-    else:
+    if expose is None:
         expose = [pkg.parent.name for pkg in location.glob("*/__init__.py")]
-
-    if hide:
-        for h in hide:
-            if not any(h.startswith(e) for e in expose):
-                raise ValueError("{} is not part of an exposed package".format(h))
+    if hide is None:
+        hide = []
 
     for pkg in expose:
         code = _TEMPLATE
