@@ -42,9 +42,9 @@ def build_editable(location, expose=None, hide=None):
     for pkg in expose:
         code = _TEMPLATE
         for of, to in {
-            '""  # location of replacement': location,
+            '""  # location of replacement': str(location),
             '""  # excludes': hide,
         }.items():
-            code = code.replace(of, repr(str(to)))
+            code = code.replace(of, repr(to))
         code += "_bootstrap(){}".format(os.linesep)
         yield "{}.py".format(pkg), code
