@@ -33,4 +33,5 @@ jobs:
       run: python -m pip install tox
 
     # Main check
-    - run: python -m tox -e py
+    - name: Run test suite for ${{ matrix.os }}-Python${{ matrix.py }}
+      run: python -m tox -e py
