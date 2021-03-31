@@ -10,6 +10,15 @@ def make_venv(name):
     return virtualenv.cli_run([str(name), "--without-pip"])
 
 
+def run(*args):
+    return subprocess.run(
+        [str(a) for a in args],
+        capture_output=True,
+        check=True,
+        universal_newlines=True,  # text=True when we drop 3.6 support
+    )
+
+
 def build_project(target, structure):
     target.mkdir(exist_ok=True, parents=True)
     for name, content in structure.items():
@@ -56,43 +65,36 @@ def test_hook_vars(project, expose, hide):
     assert set(global_dict["excludes"]) == set(hide or []), str(src)
 
 
-def test_editable_expose_hide(tmp_path, capfd, project):
+def test_editable_expose_hide(tmp_path, project):
     # install to a virtual environment
     result = make_venv(tmp_path / "venv")
     for name, code in build_editable(project, expose=["foo"], hide=["foo.bar"]):
         (result.creator.purelib / name).write_text(code, encoding="utf-8")
 
     # test it works
-    subprocess.check_call([result.creator.exe, "-c", "import foo; print(foo)"])
-    capfd.readouterr()
-
+    run(result.creator.exe, "-c", "import foo; print(foo)")
     with pytest.raises(subprocess.CalledProcessError):
-        subprocess.check_call([result.creator.exe, "-c", "import foo.bar"])
-    _, err = capfd.readouterr()
-    assert "foo.bar is excluded from packaging" in err
+        ret = run(result.creator.exe, "-c", "import foo.bar")
+        assert "foo.bar is excluded from packaging" in ret.stderr
 
 
-def test_editable_hide_none(tmp_path, capfd, project):
+def test_editable_hide_none(tmp_path, project):
     # install to a virtual environment
     result = make_venv(tmp_path / "venv")
     for name, code in build_editable(project, expose=["foo"]):
         (result.creator.purelib / name).write_text(code)
 
     # test that both foo and foo.bar are exposed
-    subprocess.check_call([result.creator.exe, "-c", "import foo; print(foo)"])
-    capfd.readouterr()
-    subprocess.check_call([result.creator.exe, "-c", "import foo.bar; print(foo.bar)"])
-    capfd.readouterr()
+    run(result.creator.exe, "-c", "import foo; print(foo)")
+    run(result.creator.exe, "-c", "import foo.bar; print(foo.bar)")
 
 
-def test_editable_defaults(tmp_path, capfd, project):
+def test_editable_defaults(tmp_path, project):
     # install to a virtual environment
     result = make_venv(tmp_path / "venv")
     for name, code in build_editable(project):
         (result.creator.purelib / name).write_text(code)
 
     # test that both foo and foo.bar are exposed
-    subprocess.check_call([result.creator.exe, "-c", "import foo; print(foo)"])
-    capfd.readouterr()
-    subprocess.check_call([result.creator.exe, "-c", "import foo.bar; print(foo.bar)"])
-    capfd.readouterr()
+    run(result.creator.exe, "-c", "import foo; print(foo)")
+    run(result.creator.exe, "-c", "import foo.bar; print(foo.bar)")
