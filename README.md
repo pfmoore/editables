@@ -24,3 +24,8 @@ control what gets exposed using the `expose` and `hide` arguments of
 
 This project doesn't build wheels directly. That's the responsibility of
 the calling code.
+
+## Python Compatibility
+
+This project supports the same versions of Python as pip does. Currently
+that is Python 3.6 and later, and PyPy3.
