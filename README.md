@@ -28,4 +28,5 @@ the calling code.
 ## Python Compatibility
 
 This project supports the same versions of Python as pip does. Currently
-that is Python 3.6 and later, and PyPy3.
+that is Python 3.6 and later, and PyPy3 (although we don't test against
+PyPy).
