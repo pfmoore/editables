@@ -13,9 +13,10 @@ def make_venv(name):
 def run(*args):
     return subprocess.run(
         [str(a) for a in args],
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         check=True,
-        universal_newlines=True,  # text=True when we drop 3.6 support
+        universal_newlines=True,
     )
 
 
