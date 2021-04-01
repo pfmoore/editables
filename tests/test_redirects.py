@@ -55,8 +55,8 @@ def test_redirects(tmp_path):
     build(project, project_files)
 
     r = Redirector("xxx")
-    r.redirect("mod", project / "mod.py")
-    r.redirect("pkg", project / "pkg")
+    r.redirect(project / "mod.py")
+    r.redirect(project / "pkg")
 
     sitedir = tmp_path / "site"
     sitedir.mkdir()
