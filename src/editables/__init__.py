@@ -1,47 +1,61 @@
-import pkgutil
 from pathlib import Path
 
 __all__ = (
-    "build_editable",
+    "EditableProject",
     "__version__",
 )
 
 __version__ = "0.1"
 
-_TEMPLATE = pkgutil.get_data(__package__, "install_hook.py").decode("utf-8")
 
+class EditableProject:
+    def __init__(self, project_name, project_dir):
+        self.project_name = project_name
+        self.project_dir = Path(project_dir)
+        self.redirections = {}
+        self.path_entries = []
 
-def build_editable(location, expose=None, hide=None):
-    """Generate files that can be added to a wheel to expose packages from a directory.
+    def make_absolute(self, path):
+        return (self.project_dir / path).resolve()
 
-    By default, every package (directory with __init__.py) in the supplied
-    location will be exposed on sys.path by the generated wheel.
+    def map(self, name, target):
+        assert "." not in name
+        target = self.make_absolute(target)
+        assert name == target.stem
+        if target.is_dir():
+            target = target / "__init__.py"
+        if target.is_file():
+            self.redirections[name] = str(target)
+        else:
+            raise RuntimeError("Not a valid Python package or module")
 
-    Optional arguments:
+    def add_to_path(self, dirname):
+        self.path_entries.append(self.make_absolute(dirname))
 
-    expose: A list of packages to include in the generated wheel
-            (overrides the default behaviour).
-    hide: A list of sub-packages of exposed packages that will be
-          invisible in the generated wheel.
+    def files(self):
+        yield f"{self.project_name}.pth", self.pth_file()
+        if self.redirections:
+            yield f"_{self.project_name}.py", self.bootstrap_file()
 
-    Returns: a list of (name, content) pairs, specifying files that should
-    be added to the generated wheel. Callers are responsible for building a
-    valid wheel containing these files.
-    """
+    def dependencies(self):
+        deps = []
+        if self.redirections:
+            deps.append("editables")
+        return deps
 
-    location = Path(location)
+    def pth_file(self):
+        lines = []
+        if self.redirections:
+            lines.append(f"import _{self.project_name}")
+        for entry in self.path_entries:
+            lines.append(str(entry))
+        return "\n".join(lines)
 
-    if expose is None:
-        expose = [pkg.parent.name for pkg in location.glob("*/__init__.py")]
-    if hide is None:
-        hide = []
-
-    for pkg in expose:
-        code = _TEMPLATE
-        for of, to in {
-            '""  # location of replacement': str(location),
-            '""  # excludes': hide,
-        }.items():
-            code = code.replace(of, repr(to))
-
-        yield "{}.py".format(pkg), code
+    def bootstrap_file(self):
+        bootstrap = [
+            "from editables.redirector import RedirectingFinder as F",
+            "F.install()",
+        ]
+        for name, path in self.redirections.items():
+            bootstrap.append(f"F.map_module({name!r}, {path!r})")
+        return "\n".join(bootstrap)
