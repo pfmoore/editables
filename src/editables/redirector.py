@@ -2,10 +2,13 @@ import base64
 import importlib.abc
 import importlib.util
 import json
+import re
 import sys
 import warnings
 from pathlib import Path
 
+# https://packaging.python.org/guides/packaging-namespace-packages/#pkgutil-style-namespace-packages
+LEGACY_NAMESPACE_PACKAGE_INDICATOR = r"""__path__ = __import__\(["']pkgutil["']\)\.extend_path\(__path__, __name__\)"""
 
 
 class Redirector:
@@ -23,7 +26,7 @@ class Redirector:
             redir = target
         elif target.is_dir():
             init = target / "__init__.py"
-            if init.is_file():
+            if init.is_file() and not re.search(LEGACY_NAMESPACE_PACKAGE_INDICATOR, init.read_text()):
                 redir = init
             else:
                 redir = [target]
