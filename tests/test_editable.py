@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from editables import EditableProject
+from editables import EditableException, EditableProject
 
 
 def build_project(target, structure):
@@ -62,10 +62,16 @@ def project(tmp_path):
     yield project
 
 
-def test_invalid_module(project):
+def test_nonexistent_module(project):
     p = EditableProject("myproject", project)
-    with pytest.raises(RuntimeError):
-        p.map("xxx", "xxx")
+    with pytest.raises(EditableException):
+        p.map("foo", "xxx")
+
+
+def test_not_toplevel(project):
+    p = EditableProject("myproject", project)
+    with pytest.raises(EditableException):
+        p.map("foo.bar", "foo/bar")
 
 
 def test_dependencies(project):

@@ -5,7 +5,11 @@ __all__ = (
     "__version__",
 )
 
-__version__ = "0.1"
+__version__ = "0.2"
+
+
+class EditableException(Exception):
+    pass
 
 
 class EditableProject:
@@ -19,15 +23,17 @@ class EditableProject:
         return (self.project_dir / path).resolve()
 
     def map(self, name, target):
-        assert "." not in name
-        target = self.make_absolute(target)
-        assert name == target.stem
-        if target.is_dir():
-            target = target / "__init__.py"
-        if target.is_file():
-            self.redirections[name] = str(target)
+        if "." in name:
+            raise EditableException(
+                f"Cannot map {name} as it is not a top-level package"
+            )
+        abs_target = self.make_absolute(target)
+        if abs_target.is_dir():
+            abs_target = abs_target / "__init__.py"
+        if abs_target.is_file():
+            self.redirections[name] = str(abs_target)
         else:
-            raise RuntimeError("Not a valid Python package or module")
+            raise EditableException(f"{target} is not a valid Python package or module")
 
     def add_to_path(self, dirname):
         self.path_entries.append(self.make_absolute(dirname))
