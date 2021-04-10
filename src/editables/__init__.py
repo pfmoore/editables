@@ -1,47 +1,67 @@
-import pkgutil
 from pathlib import Path
 
 __all__ = (
-    "build_editable",
+    "EditableProject",
     "__version__",
 )
 
-__version__ = "0.1"
-
-_TEMPLATE = pkgutil.get_data(__package__, "install_hook.py").decode("utf-8")
+__version__ = "0.2"
 
 
-def build_editable(location, expose=None, hide=None):
-    """Generate files that can be added to a wheel to expose packages from a directory.
+class EditableException(Exception):
+    pass
 
-    By default, every package (directory with __init__.py) in the supplied
-    location will be exposed on sys.path by the generated wheel.
 
-    Optional arguments:
+class EditableProject:
+    def __init__(self, project_name, project_dir):
+        self.project_name = project_name
+        self.project_dir = Path(project_dir)
+        self.redirections = {}
+        self.path_entries = []
 
-    expose: A list of packages to include in the generated wheel
-            (overrides the default behaviour).
-    hide: A list of sub-packages of exposed packages that will be
-          invisible in the generated wheel.
+    def make_absolute(self, path):
+        return (self.project_dir / path).resolve()
 
-    Returns: a list of (name, content) pairs, specifying files that should
-    be added to the generated wheel. Callers are responsible for building a
-    valid wheel containing these files.
-    """
+    def map(self, name, target):
+        if "." in name:
+            raise EditableException(
+                f"Cannot map {name} as it is not a top-level package"
+            )
+        abs_target = self.make_absolute(target)
+        if abs_target.is_dir():
+            abs_target = abs_target / "__init__.py"
+        if abs_target.is_file():
+            self.redirections[name] = str(abs_target)
+        else:
+            raise EditableException(f"{target} is not a valid Python package or module")
 
-    location = Path(location)
+    def add_to_path(self, dirname):
+        self.path_entries.append(self.make_absolute(dirname))
 
-    if expose is None:
-        expose = [pkg.parent.name for pkg in location.glob("*/__init__.py")]
-    if hide is None:
-        hide = []
+    def files(self):
+        yield f"{self.project_name}.pth", self.pth_file()
+        if self.redirections:
+            yield f"_{self.project_name}.py", self.bootstrap_file()
 
-    for pkg in expose:
-        code = _TEMPLATE
-        for of, to in {
-            '""  # location of replacement': str(location),
-            '""  # excludes': hide,
-        }.items():
-            code = code.replace(of, repr(to))
+    def dependencies(self):
+        deps = []
+        if self.redirections:
+            deps.append("editables")
+        return deps
 
-        yield "{}.py".format(pkg), code
+    def pth_file(self):
+        lines = []
+        if self.redirections:
+            lines.append(f"import _{self.project_name}")
+        for entry in self.path_entries:
+            lines.append(str(entry))
+        return "\n".join(lines)
+
+    def bootstrap_file(self):
+        bootstrap = [
+            "from editables.redirector import RedirectingFinder as F",
+            "F.install()",
+        ]
+        for name, path in self.redirections.items():
+            bootstrap.append(f"F.map_module({name!r}, {path!r})")
+        return "\n".join(bootstrap)

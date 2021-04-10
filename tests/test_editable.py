@@ -1,23 +1,12 @@
-import subprocess
+import contextlib
+import os
+import site
+import sys
+from pathlib import Path
 
 import pytest
-import virtualenv
 
-from editables import build_editable
-
-
-def make_venv(name):
-    return virtualenv.cli_run([str(name), "--without-pip"])
-
-
-def run(*args):
-    return subprocess.run(
-        [str(a) for a in args],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=True,
-        universal_newlines=True,
-    )
+from editables import EditableException, EditableProject
 
 
 def build_project(target, structure):
@@ -28,6 +17,35 @@ def build_project(target, structure):
             path.write_text(content, encoding="utf-8")
         else:
             build_project(path, content)
+
+
+# to test in-process:
+#   Put stuff in somedir
+#   sys.path.append("somedir")
+#   site.addsitedir("somedir")
+#   Check stuff is visible
+@contextlib.contextmanager
+def import_state(extra_site=None):
+    extra_site = os.fspath(extra_site)
+    orig_modules = set(sys.modules.keys())
+    orig_path = list(sys.path)
+    orig_meta_path = list(sys.meta_path)
+    orig_path_hooks = list(sys.path_hooks)
+    orig_path_importer_cache = sys.path_importer_cache
+    if extra_site:
+        sys.path.append(extra_site)
+        site.addsitedir(extra_site)
+    try:
+        yield
+    finally:
+        remove = [key for key in sys.modules if key not in orig_modules]
+        for key in remove:
+            del sys.modules[key]
+        sys.path[:] = orig_path
+        sys.meta_path[:] = orig_meta_path
+        sys.path_hooks[:] = orig_path_hooks
+        sys.path_importer_cache.clear()
+        sys.path_importer_cache.update(orig_path_importer_cache)
 
 
 @pytest.fixture
@@ -44,58 +62,44 @@ def project(tmp_path):
     yield project
 
 
-def test_returns_right_files(project):
-    files = [f for f, src in build_editable(project)]
-    assert files == ["foo.py"]
-    files = {f for f, src in build_editable(project / "foo")}
-    assert files == {"bar.py", "baz.py"}
+def test_nonexistent_module(project):
+    p = EditableProject("myproject", project)
+    with pytest.raises(EditableException):
+        p.map("foo", "xxx")
 
 
-@pytest.mark.parametrize(
-    "expose,hide", [(None, None), (None, ["foo.bar"]), ("foo", ["foo.bar", "foo.baz"])]
-)
-def test_hook_vars(project, expose, hide):
-
-    filename, src = next(build_editable(project, expose=expose, hide=hide))
-
-    # Remove the line that runs the bootstrap
-    src = "\n".join(line for line in src.splitlines() if line != "_bootstrap()")
-    global_dict = {"__builtins__": __builtins__}
-    exec(src, global_dict)
-    assert global_dict["location"] == str(project), str(src)
-    assert set(global_dict["excludes"]) == set(hide or []), str(src)
+def test_not_toplevel(project):
+    p = EditableProject("myproject", project)
+    with pytest.raises(EditableException):
+        p.map("foo.bar", "foo/bar")
 
 
-def test_editable_expose_hide(tmp_path, project):
-    # install to a virtual environment
-    result = make_venv(tmp_path / "venv")
-    for name, code in build_editable(project, expose=["foo"], hide=["foo.bar"]):
-        (result.creator.purelib / name).write_text(code, encoding="utf-8")
-
-    # test it works
-    run(result.creator.exe, "-c", "import foo; print(foo)")
-    with pytest.raises(subprocess.CalledProcessError):
-        ret = run(result.creator.exe, "-c", "import foo.bar")
-        assert "foo.bar is excluded from packaging" in ret.stderr
+def test_dependencies(project):
+    p = EditableProject("myproject", project)
+    assert len(p.dependencies()) == 0
+    p.map("foo", "foo")
+    assert len(p.dependencies()) == 1
 
 
-def test_editable_hide_none(tmp_path, project):
-    # install to a virtual environment
-    result = make_venv(tmp_path / "venv")
-    for name, code in build_editable(project, expose=["foo"]):
-        (result.creator.purelib / name).write_text(code)
+def test_simple_pth(tmp_path, project):
+    p = EditableProject("myproject", project)
+    p.add_to_path(".")
+    structure = {name: content for name, content in p.files()}
+    site_packages = tmp_path / "site-packages"
+    build_project(site_packages, structure)
+    with import_state(extra_site=site_packages):
+        import foo
 
-    # test that both foo and foo.bar are exposed
-    run(result.creator.exe, "-c", "import foo; print(foo)")
-    run(result.creator.exe, "-c", "import foo.bar; print(foo.bar)")
+        assert Path(foo.__file__) == project / "foo/__init__.py"
 
 
-def test_editable_defaults(tmp_path, project):
-    # install to a virtual environment
-    result = make_venv(tmp_path / "venv")
-    for name, code in build_editable(project):
-        (result.creator.purelib / name).write_text(code)
+def test_make_project(project, tmp_path):
+    p = EditableProject("myproject", project)
+    p.map("foo", "foo")
+    structure = {name: content for name, content in p.files()}
+    site_packages = tmp_path / "site-packages"
+    build_project(site_packages, structure)
+    with import_state(extra_site=site_packages):
+        import foo
 
-    # test that both foo and foo.bar are exposed
-    run(result.creator.exe, "-c", "import foo; print(foo)")
-    run(result.creator.exe, "-c", "import foo.bar; print(foo.bar)")
+        assert Path(foo.__file__) == project / "foo/__init__.py"
