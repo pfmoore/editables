@@ -81,3 +81,42 @@ def test_redirects(tmp_path):
         import pkg.sub
 
         assert pkg.sub.val == 42
+
+
+def test_namespaces(tmp_path):
+    project1 = tmp_path / "project1"
+    project1_files = {
+        "ns": {
+            "foo.py": "val = 1",
+            "bar.py": "val = 1",
+        },
+    }
+    build(project1, project1_files)
+
+    project2 = tmp_path / "project2"
+    project2_files = {
+        "ns": {
+            "bar.py": "val = 2",
+            "baz.py": "val = 2",
+            "boop": {"__init__.py": "val = 2"},
+        },
+    }
+    build(project2, project2_files)
+
+    with save_import_state():
+        F.install()
+        F.add_namespace_path("ns", project1 / "ns")
+        F.add_namespace_path("ns", project2 / "ns")
+
+        import ns.foo
+
+        assert ns.foo.val == 1
+        import ns.bar
+
+        assert ns.bar.val == 1
+        import ns.baz
+
+        assert ns.baz.val == 2
+        import ns.boop
+
+        assert ns.boop.val == 2
