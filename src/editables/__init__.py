@@ -15,7 +15,7 @@ class EditableException(Exception):
 class EditableProject:
     def __init__(self, project_name, project_dir):
         self.project_name = project_name
-        self.package_name = project_name.replace('-', '_')
+        self.package_name = project_name.replace("-", "_")
         self.project_dir = Path(project_dir)
         self.redirections = {}
         self.path_entries = []
