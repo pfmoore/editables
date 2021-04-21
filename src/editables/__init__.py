@@ -15,6 +15,7 @@ class EditableException(Exception):
 class EditableProject:
     def __init__(self, project_name, project_dir):
         self.project_name = project_name
+        self.package_name = project_name.replace('-', '_')
         self.project_dir = Path(project_dir)
         self.redirections = {}
         self.path_entries = []
@@ -41,7 +42,7 @@ class EditableProject:
     def files(self):
         yield f"{self.project_name}.pth", self.pth_file()
         if self.redirections:
-            yield f"_{self.project_name}.py", self.bootstrap_file()
+            yield f"_{self.package_name}.py", self.bootstrap_file()
 
     def dependencies(self):
         deps = []
@@ -52,7 +53,7 @@ class EditableProject:
     def pth_file(self):
         lines = []
         if self.redirections:
-            lines.append(f"import _{self.project_name}")
+            lines.append(f"import _{self.package_name}")
         for entry in self.path_entries:
             lines.append(str(entry))
         return "\n".join(lines)
