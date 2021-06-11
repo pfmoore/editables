@@ -19,8 +19,8 @@ class EditableProject:
         self.redirections = {}
         self.path_entries = []
 
-        # https://www.python.org/dev/peps/pep-0503/#normalized-names
-        self.project_name = re.sub(r"[-_.]+", "-", project_name).lower()
+        # Ensure the name is a valid import
+        self.project_name = re.sub(r"\W+", "_", project_name).lower()
 
     def make_absolute(self, path):
         return (self.project_dir / path).resolve()
