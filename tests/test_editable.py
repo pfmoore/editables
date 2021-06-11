@@ -63,26 +63,26 @@ def project(tmp_path):
 
 
 def test_nonexistent_module(project):
-    p = EditableProject("myproject", project)
+    p = EditableProject("my-project", project)
     with pytest.raises(EditableException):
         p.map("foo", "xxx")
 
 
 def test_not_toplevel(project):
-    p = EditableProject("myproject", project)
+    p = EditableProject("my-project", project)
     with pytest.raises(EditableException):
         p.map("foo.bar", "foo/bar")
 
 
 def test_dependencies(project):
-    p = EditableProject("myproject", project)
+    p = EditableProject("my-project", project)
     assert len(p.dependencies()) == 0
     p.map("foo", "foo")
     assert len(p.dependencies()) == 1
 
 
 def test_simple_pth(tmp_path, project):
-    p = EditableProject("myproject", project)
+    p = EditableProject("my-project", project)
     p.add_to_path(".")
     structure = {name: content for name, content in p.files()}
     site_packages = tmp_path / "site-packages"
@@ -94,7 +94,7 @@ def test_simple_pth(tmp_path, project):
 
 
 def test_make_project(project, tmp_path):
-    p = EditableProject("myproject", project)
+    p = EditableProject("my-project", project)
     p.map("foo", "foo")
     structure = {name: content for name, content in p.files()}
     site_packages = tmp_path / "site-packages"

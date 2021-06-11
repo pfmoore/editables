@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 __all__ = (
@@ -14,11 +15,12 @@ class EditableException(Exception):
 
 class EditableProject:
     def __init__(self, project_name, project_dir):
-        self.project_name = project_name
-        self.package_name = project_name.replace("-", "_")
         self.project_dir = Path(project_dir)
         self.redirections = {}
         self.path_entries = []
+
+        # https://www.python.org/dev/peps/pep-0503/#normalized-names
+        self.project_name = re.sub(r"[-_.]+", "-", project_name).lower()
 
     def make_absolute(self, path):
         return (self.project_dir / path).resolve()
@@ -42,7 +44,7 @@ class EditableProject:
     def files(self):
         yield f"{self.project_name}.pth", self.pth_file()
         if self.redirections:
-            yield f"_{self.package_name}.py", self.bootstrap_file()
+            yield f"_{self.project_name}.py", self.bootstrap_file()
 
     def dependencies(self):
         deps = []
@@ -53,7 +55,7 @@ class EditableProject:
     def pth_file(self):
         lines = []
         if self.redirections:
-            lines.append(f"import _{self.package_name}")
+            lines.append(f"import _{self.project_name}")
         for entry in self.path_entries:
             lines.append(str(entry))
         return "\n".join(lines)
