@@ -20,7 +20,7 @@ class EditableProject:
         self.path_entries = []
 
         # Ensure the name is a valid import
-        self.project_name = re.sub(r"\W+", "_", project_name).lower()
+        self.project_name = re.sub(r"\W+", "_", project_name, flags=re.ASCII).lower()
 
     def make_absolute(self, path):
         return (self.project_dir / path).resolve()
