@@ -1,3 +1,5 @@
+import os
+from collections.abc import Iterator
 from pathlib import Path
 
 __all__ = (
@@ -5,7 +7,7 @@ __all__ = (
     "__version__",
 )
 
-__version__ = "0.2"
+__version__: str = "0.2"
 
 
 class EditableException(Exception):
@@ -13,16 +15,23 @@ class EditableException(Exception):
 
 
 class EditableProject:
-    def __init__(self, project_name, project_dir):
+    project_name: str
+    project_dir: Path
+    redirections: "dict[str, str]"
+    path_entries: "list[Path]"
+
+    def __init__(
+        self, project_name: str, project_dir: "str | os.PathLike[str]"
+    ) -> None:
         self.project_name = project_name
         self.project_dir = Path(project_dir)
         self.redirections = {}
         self.path_entries = []
 
-    def make_absolute(self, path):
+    def make_absolute(self, path: "str | os.PathLike[str]") -> Path:
         return (self.project_dir / path).resolve()
 
-    def map(self, name, target):
+    def map(self, name: str, target: "str | os.PathLike[str]") -> None:
         if "." in name:
             raise EditableException(
                 f"Cannot map {name} as it is not a top-level package"
@@ -35,21 +44,21 @@ class EditableProject:
         else:
             raise EditableException(f"{target} is not a valid Python package or module")
 
-    def add_to_path(self, dirname):
+    def add_to_path(self, dirname: "str | os.PathLike[str]") -> None:
         self.path_entries.append(self.make_absolute(dirname))
 
-    def files(self):
+    def files(self) -> "Iterator[tuple[str, str]]":
         yield f"{self.project_name}.pth", self.pth_file()
         if self.redirections:
             yield f"_{self.project_name}.py", self.bootstrap_file()
 
-    def dependencies(self):
+    def dependencies(self) -> "list[str]":
         deps = []
         if self.redirections:
             deps.append("editables")
         return deps
 
-    def pth_file(self):
+    def pth_file(self) -> str:
         lines = []
         if self.redirections:
             lines.append(f"import _{self.project_name}")
@@ -57,7 +66,7 @@ class EditableProject:
             lines.append(str(entry))
         return "\n".join(lines)
 
-    def bootstrap_file(self):
+    def bootstrap_file(self) -> str:
         bootstrap = [
             "from editables.redirector import RedirectingFinder as F",
             "F.install()",
