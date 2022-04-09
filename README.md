@@ -31,8 +31,7 @@ Build your wheel as follows:
 from editables import EditableProject
 
 my_project = EditableProject("foo", "/path/to/foo")
-my_project.map("foo", "src/foo")
-my_project.map("bar", "src/bar.py")
+my_project.add_to_path("src")
 
 # Build a wheel however you prefer...
 wheel = BuildAWheel()
@@ -41,31 +40,27 @@ wheel = BuildAWheel()
 for name, content in my_project.files():
     wheel.add_file(name, content)
 
-# Add any runtime dependencies to the wheel
+# Record any runtime dependencies
 for dep in my_project.dependencies():
     wheel.metadata.dependencies.add(dep)
 ```
 
-The resulting wheel will, when installed, put packages `foo` and `bar` on
+The resulting wheel will, when installed, put the project `src` directory on
 `sys.path` so that editing the original source will take effect without needing
 a reinstall (i.e., as "editable" packages).
 
-Exposing individual packages like this requires an import hook, which is itself
-provided by the `editables` package. That's why you need to add a (runtime)
-dependency to the wheel metadata, so that the installer will install the hook
-code as well. The dependencies are provided via an API call so that if, at
-some future point, the hook code gets moved to its own project, callers will
-not need to change.
+The project is exposed on `sys.path` by adding a single `.pth` file, named after
+the project, into the wheel.
 
-If you don't need to expose individual packages like this, but are happy to
-put the whole of the `src` directory onto `sys.path`, you can do this using
-`my_project.add_to_path("src")`. If you *only* use `add_to_path`, and not
-`map`, then no runtime dependency will be required (although you should not
-rely on this, you should still call `dependencies` to allow for future
-changes in implementation).
+Note that the `add_to_path` method writes the target directory into the `.pth`
+file, without needing an import hook (the "traditional approach" described above).
+As a result, if you only use this method, no runtime support module is needed and
+the `dependencies()` method will return an empty list. You should, however, still
+include the `for dep in my_project.dependencies()` loop in your code, in case the
+implementation changes in future, or you add a call to the `map` method.
 
-Using `add_to_path` is the only reliable way of supporting implicit namespace
-packages - the mechanism used in `map` does not handle them correctly.
+For more details, including how to control what gets exposed more precisely, see
+the documentation.
 
 Note that this project doesn't build wheels directly. That's the responsibility
 of the calling code.
