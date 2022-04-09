@@ -94,7 +94,7 @@ project).
 The `editables` project uses the following file names when building an editable
 wheel. These should be considered reserved. While backends would not normally
 add extra files to wheels generated using this library, they are allowed to do
-so, as long as those files donj't use any of the reserved names.
+so, as long as those files don't use any of the reserved names.
 
 1. `<project_name>.pth`
 2. `_editable_impl_<project_name>*.py`
