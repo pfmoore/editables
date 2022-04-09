@@ -8,6 +8,10 @@ import pytest
 
 from editables import EditableException, EditableProject
 
+# Use a project name that is not a valid Python identifier,
+# to test that it gets normalised correctly
+PROJECT_NAME = "my-project"
+
 
 def build_project(target, structure):
     target.mkdir(exist_ok=True, parents=True)
@@ -62,27 +66,65 @@ def project(tmp_path):
     yield project
 
 
+def test_invalid_project():
+    with pytest.raises(ValueError):
+        _ = EditableProject("a$b", "")
+
+
 def test_nonexistent_module(project):
-    p = EditableProject("myproject", project)
+    p = EditableProject(PROJECT_NAME, project)
     with pytest.raises(EditableException):
         p.map("foo", "xxx")
 
 
 def test_not_toplevel(project):
-    p = EditableProject("myproject", project)
+    p = EditableProject(PROJECT_NAME, project)
     with pytest.raises(EditableException):
         p.map("foo.bar", "foo/bar")
 
 
+@pytest.mark.parametrize(
+    "name,expected",
+    [
+        ("_invalid", None),
+        ("invalid_", None),
+        ("invalid%character", None),
+        ("project", "project.pth"),
+        ("Project", "project.pth"),
+        ("project_1", "project_1.pth"),
+        ("project-1", "project_1.pth"),
+        ("project.1", "project_1.pth"),
+        ("project---1", "project_1.pth"),
+        ("project-._1", "project_1.pth"),
+        ("0leading_digit_ok", "0leading_digit_ok.pth"),
+    ],
+)
+def test_project_names_normalised(name, expected):
+    try:
+        # Tricky here. We create a dummy project, add
+        # an empty directory name to the path,
+        # then get the list of files generated.
+        # The .pth file should always be the first one,
+        # and we only care about the first item (the name)
+        p = EditableProject(name, "")
+        p.add_to_path("")
+        pth = next(p.files())[0]
+    except ValueError:
+        # If the project name isn't valid, we don't
+        # expect a pth file
+        pth = None
+    assert pth == expected
+
+
 def test_dependencies(project):
-    p = EditableProject("myproject", project)
+    p = EditableProject(PROJECT_NAME, project)
     assert len(p.dependencies()) == 0
     p.map("foo", "foo")
     assert len(p.dependencies()) == 1
 
 
 def test_simple_pth(tmp_path, project):
-    p = EditableProject("myproject", project)
+    p = EditableProject(PROJECT_NAME, project)
     p.add_to_path(".")
     structure = {name: content for name, content in p.files()}
     site_packages = tmp_path / "site-packages"
@@ -94,7 +136,7 @@ def test_simple_pth(tmp_path, project):
 
 
 def test_make_project(project, tmp_path):
-    p = EditableProject("myproject", project)
+    p = EditableProject(PROJECT_NAME, project)
     p.map("foo", "foo")
     structure = {name: content for name, content in p.files()}
     site_packages = tmp_path / "site-packages"
