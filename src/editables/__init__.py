@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 __all__ = (
@@ -8,13 +9,33 @@ __all__ = (
 __version__ = "0.2"
 
 
+# Check if a project name is valid, based on PEP 426:
+# https://peps.python.org/pep-0426/#name
+def is_valid(name):
+    return (
+        re.match(r"^([A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])$", name, re.IGNORECASE)
+        is not None
+    )
+
+
+# Slightly modified version of the normalisation from PEP 503:
+# https://peps.python.org/pep-0503/#normalized-names
+# This version uses underscore, so that the result is more
+# likely to be a valid import name
+def normalize(name):
+    return re.sub(r"[-_.]+", "_", name).lower()
+
+
 class EditableException(Exception):
     pass
 
 
 class EditableProject:
     def __init__(self, project_name, project_dir):
-        self.project_name = project_name
+        if not is_valid(project_name):
+            raise ValueError(f"Project name {project_name} is not valid")
+        self.project_name = normalize(project_name)
+        self.bootstrap = f"_editable_impl_{self.project_name}"
         self.project_dir = Path(project_dir)
         self.redirections = {}
         self.path_entries = []
@@ -41,7 +62,7 @@ class EditableProject:
     def files(self):
         yield f"{self.project_name}.pth", self.pth_file()
         if self.redirections:
-            yield f"_{self.project_name}.py", self.bootstrap_file()
+            yield f"{self.bootstrap}.py", self.bootstrap_file()
 
     def dependencies(self):
         deps = []
@@ -52,7 +73,7 @@ class EditableProject:
     def pth_file(self):
         lines = []
         if self.redirections:
-            lines.append(f"import _{self.project_name}")
+            lines.append(f"import {self.bootstrap}")
         for entry in self.path_entries:
             lines.append(str(entry))
         return "\n".join(lines)

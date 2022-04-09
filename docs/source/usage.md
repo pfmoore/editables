@@ -11,8 +11,8 @@ backend's responsibility to actually create the wheel from that data.
 ## Create a project
 
 The first step is for the backend to create an "editable project". The project
-name should typically be the project name, but it can be any identifier
-conforming to the normal rules for Python module names.
+name must follow the normal rules for Python project names from
+[PEP 426](https://peps.python.org/pep-0426/#name).
 
 ```python
 project = EditableProject("myproject")
