@@ -89,6 +89,20 @@ will have a runtime dependency on the hook implementation (currently distributed
 as part of `editables`, although it could be split out into an independent
 project).
 
+## Reserved Names
+
+The `editables` project uses the following file names when building an editable
+wheel. These should be considered reserved. While backends would not normally
+add extra files to wheels generated using this library, they are allowed to do
+so, as long as those files donj't use any of the reserved names.
+
+1. `<project_name>.pth`
+2. `_editable_impl_<project_name>*.py`
+
+Here, `<project_name>` is the name supplied to the `EditableProject` constructor,
+normalised as described in [PEP 503](https://peps.python.org/pep-0503/#normalized-names),
+with dashes replaced by underscores.
+
 [^1]: The issue is related to how the same namespace can be present in multiple
       `sys.path` entries, and must be dynamically recomputed if the filesystem
       changes while the interpreter is running.
