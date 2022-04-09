@@ -83,6 +83,39 @@ def test_not_toplevel(project):
         p.map("foo.bar", "foo/bar")
 
 
+@pytest.mark.parametrize(
+    "name,expected",
+    [
+        ("_invalid", None),
+        ("invalid_", None),
+        ("invalid%character", None),
+        ("project", "project.pth"),
+        ("Project", "project.pth"),
+        ("project_1", "project_1.pth"),
+        ("project-1", "project_1.pth"),
+        ("project.1", "project_1.pth"),
+        ("project---1", "project_1.pth"),
+        ("project-._1", "project_1.pth"),
+        ("0leading_digit_ok", "0leading_digit_ok.pth"),
+    ],
+)
+def test_project_names_normalised(name, expected):
+    try:
+        # Tricky here. We create a dummy project, add
+        # an empty directory name to the path,
+        # then get the list of files generated.
+        # The .pth file should always be the first one,
+        # and we only care about the first item (the name)
+        p = EditableProject(name, "")
+        p.add_to_path("")
+        pth = next(p.files())[0]
+    except ValueError:
+        # If the project name isn't valid, we don't
+        # expect a pth file
+        pth = None
+    assert pth == expected
+
+
 def test_dependencies(project):
     p = EditableProject(PROJECT_NAME, project)
     assert len(p.dependencies()) == 0
