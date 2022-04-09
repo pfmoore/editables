@@ -47,20 +47,11 @@ for dep in my_project.dependencies():
 
 The resulting wheel will, when installed, put the project `src` directory on
 `sys.path` so that editing the original source will take effect without needing
-a reinstall (i.e., as "editable" packages).
-
-The project is exposed on `sys.path` by adding a single `.pth` file, named after
-the project, into the wheel.
-
-Note that the `add_to_path` method writes the target directory into the `.pth`
-file, without needing an import hook (the "traditional approach" described above).
-As a result, if you only use this method, no runtime support module is needed and
-the `dependencies()` method will return an empty list. You should, however, still
-include the `for dep in my_project.dependencies()` loop in your code, in case the
-implementation changes in future, or you add a call to the `map` method.
+a reinstall (i.e., as "editable" packages). The project is exposed on `sys.path`
+by adding a single `.pth` file, named after the project, into the wheel.
 
 For more details, including how to control what gets exposed more precisely, see
-the documentation.
+[the documentation](https://editables.readthedocs.io/en/latest/).
 
 Note that this project doesn't build wheels directly. That's the responsibility
 of the calling code.
