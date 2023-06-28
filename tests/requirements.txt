@@ -1,0 +1,5 @@
+pip >= 20.1
+coverage >= 5
+pytest-coverage
+pytest >= 4
+virtualenv >= 20

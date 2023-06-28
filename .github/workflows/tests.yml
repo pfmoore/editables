@@ -20,6 +20,7 @@ jobs:
         - "3.8"
         - "3.9"
         - "3.10"
+        - "3.11"
 
     steps:
     - uses: actions/checkout@v2
@@ -28,10 +29,10 @@ jobs:
       with:
         python-version: ${{ matrix.py }}
 
-    # Get the latest tox
-    - name: Install tox
-      run: python -m pip install tox
+    # Get the latest nox
+    - name: Install nox
+      run: python -m pip install nox
 
     # Main check
     - name: Run test suite for ${{ matrix.os }}-Python${{ matrix.py }}
-      run: python -m tox -e py
+      run: python -m nox -s tests
