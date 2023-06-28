@@ -1,3 +1,38 @@
 [build-system]
-requires = ["setuptools>=42"]
-build-backend = "setuptools.build_meta"
+requires = ["flit_core >=3.3"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "editables"
+version = "0.3"
+description = "Editable installations"
+readme = "README.md"
+requires-python = ">=3.7"
+authors = [{name = "Paul Moore", email = "p.f.moore@gmail.com"}]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+  "Topic :: Software Development :: Libraries",
+  "Topic :: Utilities",
+]
+dependencies = []
+
+[project.urls]
+Documentation = "https://editables.readthedocs.io"
+Source = "https://github.com/pfmoore/editables"
+Tracker = "https://github.com/pfmoore/editables/issues"
+
+[tool.flit.sdist]
+include = ["LICENSE*", "tests/", "docs/"]
+exclude = ["docs/build", "tests/__pycache__"]
