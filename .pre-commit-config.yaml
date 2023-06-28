@@ -22,3 +22,14 @@ repos:
   rev: v0.0.270
   hooks:
     - id: ruff
+
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.3.0
+  hooks:
+  - id: mypy
+    files: src
+    args: ["--pretty", "--show-error-codes"]
+    additional_dependencies: [
+        'nox',
+        'pytest',
+    ]
