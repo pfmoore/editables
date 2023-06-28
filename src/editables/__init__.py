@@ -1,5 +1,7 @@
+import os
 import re
 from pathlib import Path
+from typing import Dict, Iterable, List, Tuple, Union
 
 __all__ = (
     "EditableProject",
@@ -11,7 +13,7 @@ __version__ = "0.3"
 
 # Check if a project name is valid, based on PEP 426:
 # https://peps.python.org/pep-0426/#name
-def is_valid(name):
+def is_valid(name: str) -> bool:
     return (
         re.match(r"^([A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])$", name, re.IGNORECASE)
         is not None
@@ -22,7 +24,7 @@ def is_valid(name):
 # https://peps.python.org/pep-0503/#normalized-names
 # This version uses underscore, so that the result is more
 # likely to be a valid import name
-def normalize(name):
+def normalize(name: str) -> str:
     return re.sub(r"[-_.]+", "_", name).lower()
 
 
@@ -31,19 +33,19 @@ class EditableException(Exception):
 
 
 class EditableProject:
-    def __init__(self, project_name, project_dir):
+    def __init__(self, project_name: str, project_dir: Union[str, os.PathLike]) -> None:
         if not is_valid(project_name):
             raise ValueError(f"Project name {project_name} is not valid")
         self.project_name = normalize(project_name)
         self.bootstrap = f"_editable_impl_{self.project_name}"
         self.project_dir = Path(project_dir)
-        self.redirections = {}
-        self.path_entries = []
+        self.redirections: Dict[str, str] = {}
+        self.path_entries: List[Path] = []
 
-    def make_absolute(self, path):
+    def make_absolute(self, path: Union[str, os.PathLike]) -> Path:
         return (self.project_dir / path).resolve()
 
-    def map(self, name, target):
+    def map(self, name: str, target: Union[str, os.PathLike]) -> None:
         if "." in name:
             raise EditableException(
                 f"Cannot map {name} as it is not a top-level package"
@@ -56,21 +58,21 @@ class EditableProject:
         else:
             raise EditableException(f"{target} is not a valid Python package or module")
 
-    def add_to_path(self, dirname):
+    def add_to_path(self, dirname: Union[str, os.PathLike]):
         self.path_entries.append(self.make_absolute(dirname))
 
-    def files(self):
+    def files(self) -> Iterable[Tuple[str, str]]:
         yield f"{self.project_name}.pth", self.pth_file()
         if self.redirections:
             yield f"{self.bootstrap}.py", self.bootstrap_file()
 
-    def dependencies(self):
+    def dependencies(self) -> List[str]:
         deps = []
         if self.redirections:
             deps.append("editables")
         return deps
 
-    def pth_file(self):
+    def pth_file(self) -> str:
         lines = []
         if self.redirections:
             lines.append(f"import {self.bootstrap}")
@@ -78,7 +80,7 @@ class EditableProject:
             lines.append(str(entry))
         return "\n".join(lines)
 
-    def bootstrap_file(self):
+    def bootstrap_file(self) -> str:
         bootstrap = [
             "from editables.redirector import RedirectingFinder as F",
             "F.install()",
