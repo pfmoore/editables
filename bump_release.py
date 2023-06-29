@@ -18,7 +18,7 @@ new_version = sys.argv[1]
 
 files = [
     ("src/editables/__init__.py", r'^__version__ = "(\d+\.\d+)"$'),
-    ("setup.cfg", r"^version = (\d+\.\d+)$"),
+    ("pyproject.toml", r'^version = "(\d+\.\d+)"$'),
     ("docs/source/conf.py", r'^release = "(\d+\.\d+)"$'),
 ]
 
