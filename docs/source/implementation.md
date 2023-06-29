@@ -50,6 +50,15 @@ a `src` subdirectory (with the `src` directory then being what gets added to
 
 The `editables` project implements this approach using the `add_to_path` method.
 
+## Package-specific paths
+
+If a package sets the `__path__` variable to a list of those directories, the
+import system will search those directories when looking for subpackages or
+submodules. This allows the user to "graft" a directory into an existing package,
+simply by setting an appropriate `__path__` value.
+
+The `editables` project implements this approach using the `add_to_subpackage` method.
+
 ## Import hooks
 
 Python's import machinery includes an "import hook" mechanism which in theory

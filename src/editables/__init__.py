@@ -41,6 +41,7 @@ class EditableProject:
         self.project_dir = Path(project_dir)
         self.redirections: Dict[str, str] = {}
         self.path_entries: List[Path] = []
+        self.subpackages: Dict[str, Path] = {}
 
     def make_absolute(self, path: Union[str, os.PathLike]) -> Path:
         return (self.project_dir / path).resolve()
@@ -58,11 +59,17 @@ class EditableProject:
         else:
             raise EditableException(f"{target} is not a valid Python package or module")
 
-    def add_to_path(self, dirname: Union[str, os.PathLike]):
+    def add_to_path(self, dirname: Union[str, os.PathLike]) -> None:
         self.path_entries.append(self.make_absolute(dirname))
+
+    def add_to_subpackage(self, package: str, dirname: Union[str, os.PathLike]) -> None:
+        self.subpackages[package] = self.make_absolute(dirname)
 
     def files(self) -> Iterable[Tuple[str, str]]:
         yield f"{self.project_name}.pth", self.pth_file()
+        if self.subpackages:
+            for package, location in self.subpackages.items():
+                yield self.package_redirection(package, location)
         if self.redirections:
             yield f"{self.bootstrap}.py", self.bootstrap_file()
 
@@ -79,6 +86,11 @@ class EditableProject:
         for entry in self.path_entries:
             lines.append(str(entry))
         return "\n".join(lines)
+
+    def package_redirection(self, package: str, location: Path) -> Tuple[str, str]:
+        init_py = package.replace(".", "/") + "/__init__.py"
+        content = f"__path__ = [{str(location)!r}]"
+        return init_py, content
 
     def bootstrap_file(self) -> str:
         bootstrap = [

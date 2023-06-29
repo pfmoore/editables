@@ -35,6 +35,21 @@ This will simply write the given directory into the `.pth` file added to the
 wheel. See the "Implementation Details" section for more information. Note that
 this method requires no runtime support.
 
+To expose a directory as a package on `sys.path`, call the `add_to_subpackage`
+method, giving the package name to use, and the path to the directory containing
+the contents of that package.
+
+For example, if the directory `src` contains a package `my_pkg`, which you want
+to expose to the target interpreter as `some.package.my_pkg`, run the following:
+
+```python
+project.add_to_subpackage("some.package", "src")
+```
+
+Note that everything in the source directory will be available under the given
+package name, and the source directory should *not* contain an `__init__.py`
+file (if it does, that file will simply be ignored).
+
 To expose a single `.py` file as a module, call the `map` method, giving the
 name by which the module can be imported, and the path to the implementation
 `.py` file. It *is* possible to give the module a name that is not the same as

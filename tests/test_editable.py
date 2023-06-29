@@ -18,6 +18,9 @@ def build_project(target, structure):
     for name, content in structure.items():
         path = target / name
         if isinstance(content, str):
+            # If the name contains slashes, create any
+            # required parent directories
+            path.parent.mkdir(exist_ok=True, parents=True)
             path.write_text(content, encoding="utf-8")
         else:
             build_project(path, content)
@@ -145,3 +148,15 @@ def test_make_project(project, tmp_path):
         import foo
 
         assert Path(foo.__file__) == project / "foo/__init__.py"
+
+
+def test_subpackage_pth(tmp_path, project):
+    p = EditableProject(PROJECT_NAME, project)
+    p.add_to_subpackage("a.b", ".")
+    structure = {name: content for name, content in p.files()}
+    site_packages = tmp_path / "site-packages"
+    build_project(site_packages, structure)
+    with import_state(extra_site=site_packages):
+        import a.b.foo
+
+        assert Path(a.b.foo.__file__) == project / "foo/__init__.py"
