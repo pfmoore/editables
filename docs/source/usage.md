@@ -24,6 +24,8 @@ Once the project has been created, the backend can specify which files should be
 exposed when the editable install is done. There are two mechanisms currently
 implemented for this.
 
+### Adding a directory to `sys.path`
+
 To add a particular directory (typically the project's "src" directory) to
 `sys.path` at runtime, simply call the `add_to_path` method
 
@@ -34,6 +36,8 @@ project.add_to_path("src")
 This will simply write the given directory into the `.pth` file added to the
 wheel. See the "Implementation Details" section for more information. Note that
 this method requires no runtime support.
+
+### Adding a directory as package content
 
 To expose a directory as a package on `sys.path`, call the `add_to_subpackage`
 method, giving the package name to use, and the path to the directory containing
@@ -50,6 +54,12 @@ Note that everything in the source directory will be available under the given
 package name, and the source directory should *not* contain an `__init__.py`
 file (if it does, that file will simply be ignored).
 
+Also, the target (`some.package` here) must *not* be an existing package that
+is already part of the editable wheel. This is because its `__init__.py` file
+will be overwritten by the one created by this method.
+
+# Mapping individual files/packages
+
 To expose a single `.py` file as a module, call the `map` method, giving the
 name by which the module can be imported, and the path to the implementation
 `.py` file. It *is* possible to give the module a name that is not the same as
@@ -59,12 +69,15 @@ the implementation filename, although this is expected to be extremely uncommon.
 project.map("module", "src/module.py")
 ```
 
-To expose a directory as a package, the `map` method is used in precisely the
-same way, but with the directory name:
+To expose a directory with an `__init__.py` file as a package, the `map`
+method is used in precisely the same way, but with the directory name:
 
 ```python
 project.map("mypackage", "src/mypackage")
 ```
+
+The directory *must* be a Python package - i.e., it must contain an `__init__.py`
+file, and the target package name must be a top-level name, not a dotted name.
 
 Using the `map` method does require a runtime support module.
 
@@ -83,6 +96,11 @@ writing to the wheel.
 for name, content in my_project.files():
     wheel.add_file(name, content)
 ```
+
+Note that the files to be added must be included unchanged - it is *not*
+supported for the caller to modify the returned content. Also, it is the
+caller's responsibility to ensure that none of the generated files clash with
+files that the caller is adding to the wheel as part of its own processes.
 
 ### Runtime dependencies
 

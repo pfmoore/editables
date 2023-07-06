@@ -12,6 +12,7 @@ caption: Contents
 ---
 usage
 implementation
+use-cases
 ```
 
 # Indices and tables
