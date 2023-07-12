@@ -37,3 +37,11 @@ class RedirectingFinder(importlib.abc.MetaPathFinder):
                 break
         else:
             sys.meta_path.append(cls)
+
+    @classmethod
+    def invalidate_caches(cls) -> None:
+        # importlib.invalidate_caches calls finders' invalidate_caches methods,
+        # and since we install this meta path finder as a class rather than an instance,
+        # we have to override the inherited invalidate_caches method (using self)
+        # as a classmethod instead
+        pass

@@ -1,4 +1,5 @@
 import contextlib
+import importlib
 import sys
 
 from editables.redirector import RedirectingFinder as F
@@ -81,3 +82,10 @@ def test_redirects(tmp_path):
         import pkg.sub
 
         assert pkg.sub.val == 42
+
+
+def test_cache_invalidation():
+    F.install()
+    # assert that the finder matches importlib's expectations
+    # see https://github.com/pfmoore/editables/issues/31
+    importlib.invalidate_caches()
