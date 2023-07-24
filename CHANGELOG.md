@@ -1,5 +1,9 @@
 # Changes
 
+## Release 0.5
+
+* Fix a bug that broke `importlib.invalidate_caches`
+
 ## Release 0.4
 
 * Add a new `add_to_subpackage` method.
