@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "editables"
-version = "0.4"
+version = "0.5"
 description = "Editable installations"
 readme = "README.md"
 requires-python = ">=3.7"
