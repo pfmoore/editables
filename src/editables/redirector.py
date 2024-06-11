@@ -19,10 +19,6 @@ class RedirectingFinder(importlib.abc.MetaPathFinder):
     def find_spec(
         cls, fullname: str, path: ModulePath = None, target: Optional[ModuleType] = None
     ) -> Optional[importlib.machinery.ModuleSpec]:
-        if "." in fullname:
-            return None
-        if path is not None:
-            return None
         try:
             redir = cls._redirections[fullname]
         except KeyError:
