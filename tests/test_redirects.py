@@ -84,6 +84,26 @@ def test_redirects(tmp_path):
         assert pkg.sub.val == 42
 
 
+def test_namespace_redirects(tmp_path):
+    project = tmp_path / "project"
+    project_files = {
+        "ns.pkg": {
+            "__init__.py": "val = 42",
+            "sub.py": "val = 42",
+        }
+    }
+    build(project, project_files)
+
+    with save_import_state():
+        F.install()
+        F.map_module("ns.pkg", project / "ns.pkg" / "__init__.py")
+
+        import ns.pkg.sub
+
+        assert ns.pkg.val == 42
+        assert ns.pkg.sub.val == 42
+
+
 def test_cache_invalidation():
     F.install()
     # assert that the finder matches importlib's expectations
