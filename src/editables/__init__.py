@@ -72,10 +72,7 @@ class EditableProject:
             yield f"{self.bootstrap}.py", self.bootstrap_file()
 
     def dependencies(self) -> List[str]:
-        deps = []
-        if self.redirections:
-            deps.append("editables")
-        return deps
+        return ["editables"] * bool(self.redirections)
 
     def pth_file(self) -> str:
         lines = []
