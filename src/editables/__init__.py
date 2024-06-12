@@ -53,10 +53,9 @@ class EditableProject:
             )
         abs_target = self.make_absolute(target)
         file_target = abs_target / ("__init__.py" * abs_target.is_dir())
-        if file_target.is_file():
-            self.redirections[name] = str(file_target)
-        else:
+        if not file_target.is_file():
             raise EditableException(f"{target} is not a valid Python package or module")
+        self.redirections[name] = str(file_target)
 
     def add_to_path(self, dirname: Union[str, os.PathLike]) -> None:
         self.path_entries.append(self.make_absolute(dirname))
