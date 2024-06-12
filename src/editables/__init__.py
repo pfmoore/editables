@@ -52,10 +52,9 @@ class EditableProject:
                 f"Cannot map {name} as it is not a top-level package"
             )
         abs_target = self.make_absolute(target)
-        if abs_target.is_dir():
-            abs_target = abs_target / "__init__.py"
-        if abs_target.is_file():
-            self.redirections[name] = str(abs_target)
+        file_target = abs_target / ("__init__.py" * abs_target.is_dir())
+        if file_target.is_file():
+            self.redirections[name] = str(file_target)
         else:
             raise EditableException(f"{target} is not a valid Python package or module")
 
