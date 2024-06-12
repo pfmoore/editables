@@ -23,7 +23,7 @@ method will be visible in such tools.
 
 This is essentially the same as the previous use case, but rather than
 installing the project directory directly into site-packages, it is
-installed under a partocular package name. So, for example, if the
+installed under a particular package name. So, for example, if the
 project has a `src` directory containing a package `foo` and a module
 `bar.py`, the requirement is to install the contents of `src` as
 `my.namespace.foo` and `my.namespace.bar`.
