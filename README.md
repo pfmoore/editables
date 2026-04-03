@@ -1,7 +1,7 @@
 # A Python library for creating "editable wheels"
 
 This library supports the building of wheels which, when installed, will
-expose packages in a local directory on `sys.path` in "editable mode". In
+expose packages in a local directory in "editable mode". In
 other words, changes to the package source will be  reflected in the package
 visible to Python, without needing a reinstall.
 
@@ -39,16 +39,11 @@ wheel = BuildAWheel()
 # Add files to the wheel
 for name, content in my_project.files():
     wheel.add_file(name, content)
-
-# Record any runtime dependencies
-for dep in my_project.dependencies():
-    wheel.metadata.dependencies.add(dep)
 ```
 
-The resulting wheel will, when installed, put the project `src` directory on
-`sys.path` so that editing the original source will take effect without needing
-a reinstall (i.e., as "editable" packages). The project is exposed on `sys.path`
-by adding a single `.pth` file, named after the project, into the wheel.
+The resulting wheel will, when installed, ensure that editing the original
+source will take effect without needing a reinstall (i.e., as "editable"
+packages).
 
 For more details, including how to control what gets exposed more precisely, see
 [the documentation](https://editables.readthedocs.io/en/latest/).

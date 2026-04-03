@@ -13,30 +13,38 @@ into the target site-packages.
 For this use case, the `project.add_to_path` method is ideal, making
 the project directory available to the import system directly.
 
-There are almost no downsides to this approach, as it is using core
-import system mechanisms to manage `sys.path`. Furthermore, the method
-is implemented using `.pth` files, which are recognised by static analysis
-tools such as type checkers, and so editable installs created using this
-method will be visible in such tools.
+There are almost no downsides to this approach starting from the second run,
+there will be a symbolic link in site-packages, so it will be recognised by
+static analysis tools such as type checkers, and so editable installs created
+using this method will be visible in such tools. For the first run, you can
+mark the real project directory as a source directory if using PyCharm, or run
+an `import` using the normal CPython if using Mypy.
+
+Editables now avoids cluttering `sys.path` with `.pth` files. It will list the
+modules in the directory at build time, then follows the logic of the next use
+case. If you add a module, just rebuild the wheel.
 
 ## Project directory installed under an explicit package name
 
 This is essentially the same as the previous use case, but rather than
-installing the project directory directly into site-packages, it is
-installed under a particular package name. So, for example, if the
-project has a `src` directory containing a package `foo` and a module
-`bar.py`, the requirement is to install the contents of `src` as
-`my.namespace.foo` and `my.namespace.bar`.
+listing the project directory and installing all its modules into
+site-packages, one specified module is installed and can be renamed to
+a particular package name. So, for example, if the project has a `src` directory
+containing a package `foo` and a module `bar.py`, the user wants to install the
+contents of `src` as `my.namespace.foo` and `my.namespace.bar`.
 
 For this use case, the `project.add_to_subpackage` method is available.
 This method creates the `my.namespace` package (by installing an `__init__.py`
 file for it into site-packages) and gives that package a `__path__` attribute
-pointing to the source directory to be installed under that package name.
+pointing to the source directory to be installed under that package name. If
+there is a preexisting `__init__.py` inside `my.namespace`, make sure to vendor
+it, and call it from `src/__init__.py`.
 
 Again, this approach uses core import system mechanisms, and so will have
-few or no downsides at runtime. However, because this approach relies on
-*runtime* manipulation of `sys.path`, it will not be recognised by static
-analysis tools.
+few or no downsides at runtime. However on the first run, because this approach
+relies on *runtime* manipulation of `__path__`, it will not be recognised by
+static analysis tools. On the second run, there will be a symlink as stated
+above.
 
 ## Installing part of a source directory
 
@@ -47,29 +55,17 @@ particularly for new projects, although older projects may be using this
 type of layout for historical reasons.
 
 The core import machinery does not provide a "native" approach supporting
-excluding part of a directory like this, so custom import hooks are needed
-to implement it. At the time of writing, all such custom hook implementations
-have limitations, and should be considered experimental. As a result, build
-backends should *always* prefer one of the other implementation methods when
-available.
+*excluding* part of a directory like this, we need to `map` each module we want
+to *include*. This function has changed to the previous use case's
+`__init__.py`, and is no longer experimental. In fact, all the other use cases
+are ease-of-use wrappers around this one. We removed the dependency on
+executable `.pth` files, import hooks, and the `editables` module.
 
 The `project.map` method allows mapping of either a single Python file, or
 a Python package directory, to an explicit top-level name in the import system.
 It does this by installing a `.pth` file and a Python module. The `.pth` file
 simply runs the Python module, and the module installs the requested set of
 mappings using an import hook exported by the `editables` module.
-
-Downsides of this approach are:
-
-1. The approach depends on the ability to run executable code from a `.pth`
-   file. While this is a supported capability of `.pth` files, it is
-   considered a risk, and there have been proposals to remove it. If that
-   were to happen, this mechanism would no longer work.
-2. It adds a *runtime* dependency on the `editables` module, rather than
-   just a build-time dependency.
-3. The import hook has known limitations when used with implicit namespace
-   packages - there is [a CPython issue](https://github.com/python/cpython/issues/92054)
-   discussing some of the problems.
 
 ## Unsupported use cases
 
@@ -118,3 +114,14 @@ more complex mappings of this form, but that would likely require a
 significant enhancement to the import hook mechanism being used, and would
 be a major, backward incompatible, change. There are currently no plans for
 such a feature, though.
+
+### Overwriting packages
+
+Overwriting modules is fine. Overwriting packages would require slowly
+recursively removing the original package before installing the symlink, which
+is important for performance. Moving it to a random name could fill up the disk
+if it's not removed later. Therefore, we install a redirecting `.py` module
+that can turn itself into a package if it chooses to set `__path__`. It installs
+a symlink to speed up the second run. If it's a module, the symlink overwrites
+the redirector, but symlinks can't overwrite packages. Python will silently
+prefer to load existing packages rather than the redirecting module.

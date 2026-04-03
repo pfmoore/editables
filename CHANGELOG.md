@@ -1,5 +1,13 @@
 # Changes
 
+## Release 0.6
+
+* All 3 methods now wrap `project.map`
+* All exception-causing restrictions were removed
+* `*.pth` is no longer used
+* All methods use `mymodule.py` files that then basically `execfile()`
+* It may also create symlinks for performance and static analysis when available
+
 ## Release 0.5
 
 * Fix a bug that broke `importlib.invalidate_caches`

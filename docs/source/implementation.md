@@ -29,6 +29,8 @@ hooks to further configure the import machinery).
 
 ## Editables using `.pth` entries
 
+**Editables no longer uses this**
+
 The simplest way of setting up an editable project is to install a `.pth` file
 containing a single line specifying the project directory. This will cause the
 project directory to be added to `sys.path` at interpreter startup, making it
@@ -48,7 +50,8 @@ directly to the `.pth` file, `import setup` could end up running the project's
 a `src` subdirectory (with the `src` directory then being what gets added to
 `sys.path`) reduces the risk of such issues significantly.
 
-The `editables` project implements this approach using the `add_to_path` method.
+The `editables` project used to implement this approach using the
+`add_to_path` method.
 
 ## Package-specific paths
 
@@ -57,9 +60,27 @@ import system will search those directories when looking for subpackages or
 submodules. This allows the user to "graft" a directory into an existing package,
 simply by setting an appropriate `__path__` value.
 
-The `editables` project implements this approach using the `add_to_subpackage` method.
+## Symbolic links
+
+Module files and package directories will be symlinked to use on the second run.
+When Python asks to open a file path, directory traversal will resume at the
+symlink target if a directory is encountered, and the operating system will give
+Python the contents of the destination file if the last path component is a
+symlink. Basically we have the OS redirect an entry in site-packages to the
+project folder, so both locations become more-or-less equivalent.
+
+## Execfile
+
+For the first run, we reimplement Python 2's `execfile` by reading the file,
+cleaning up globals, then calling `exec()`. So at runtime we paste the contents
+of the real Python file into the redirector module, so it's as if the code was
+copied there. We only set `__path__` if symlinking fails, because if it
+succeeds, the `exec`ed real code can just use the symlink next to the
+redirector.
 
 ## Import hooks
+
+**Editables no longer uses this**
 
 Python's import machinery includes an "import hook" mechanism which in theory
 allows almost any means of exposing a package to Python. Import hooks have been
@@ -71,10 +92,10 @@ package to a filesystem location specifically designated as where that package's
 code is located. By using this import hook, it is possible to exercise precise
 control over what is exposed to Python. For details of how the hook works,
 readers should investigate the source of the `editables.redirector` module, part
-of the `editables` package.
+of version 0.5 the `editables` package.
 
-The `editables` project implements this approach for the `map` method. The
-`.pth` file that gets written loads the redirector and calls a method on it
+The `editables` project used to implement this approach for the `map` method.
+The `.pth` file that gets written loads the redirector and calls a method on it
 to add the requested mappings to it.
 
 There are two downsides to this approach, as compared to the simple `.pth` file
@@ -99,6 +120,8 @@ as part of `editables`, although it could be split out into an independent
 project).
 
 ## Reserved Names
+
+**Editables no longer uses this**
 
 The `editables` project uses the following file names when building an editable
 wheel. These should be considered reserved. While backends would not normally

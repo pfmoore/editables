@@ -24,24 +24,23 @@ Once the project has been created, the backend can specify which files should be
 exposed when the editable install is done. There are two mechanisms currently
 implemented for this.
 
-### Adding a directory to `sys.path`
+### Adding a directory
 
-To add a particular directory (typically the project's "src" directory) to
-`sys.path` at runtime, simply call the `add_to_path` method
+To make all modules in a particular directory (typically the project's "src"
+directory) visible at runtime, simply call the `add_to_path` method
 
 ```python
 project.add_to_path("src")
 ```
 
-This will simply write the given directory into the `.pth` file added to the
-wheel. See the "Implementation Details" section for more information. Note that
-this method requires no runtime support.
+This is a simple wrapper over looping over `src/*.py src/*/` and calling the
+code in the next section.
 
 ### Adding a directory as package content
 
-To expose a directory as a package on `sys.path`, call the `add_to_subpackage`
-method, giving the package name to use, and the path to the directory containing
-the contents of that package.
+To expose a directory as a package, call the `add_to_subpackage` method, giving
+the package name to use, and the path to the directory containing the contents
+of that package.
 
 For example, if the directory `src` contains a package `my_pkg`, which you want
 to expose to the target interpreter as `some.package.my_pkg`, run the following:
@@ -51,12 +50,23 @@ project.add_to_subpackage("some.package", "src")
 ```
 
 Note that everything in the source directory will be available under the given
-package name, and the source directory should *not* contain an `__init__.py`
-file (if it does, that file will simply be ignored).
+package name. Restrictions have been relaxed in version 0.6, and the source
+directory can now optionally contain an `__init__.py`, which will be loaded.
 
-Also, the target (`some.package` here) must *not* be an existing package that
-is already part of the editable wheel. This is because its `__init__.py` file
-will be overwritten by the one created by this method.
+Be careful if the target (`some.package` here) is an existing package that is
+already part of your editable wheel. Your build backend should create a separate
+directory like `setuptools`'s `build/`, or store intermediate files in memory
+like `wheel.wheelfile` does. Back up to Git, then ensure that none of your
+`*.py` get overwritten by a bad build backend.
+
+Don't redundantly add a parent package that already contains a file named like
+`othersrc/package/__init__.py` via
+`project.add_to_subpackage("some", "othersrc")`, or our `src` will be ignored as
+we implement the redirection via `package.py` but `othersrc/package/__init__.py`
+takes precedence.
+
+This is a wrapper for `project.map("some.package", "src/__init__.py")`, but
+`src/__init__.py` need not exist.
 
 # Mapping individual files/packages
 
@@ -76,10 +86,13 @@ method is used in precisely the same way, but with the directory name:
 project.map("mypackage", "src/mypackage")
 ```
 
-The directory *must* be a Python package - i.e., it must contain an `__init__.py`
-file, and the target package name must be a top-level name, not a dotted name.
+As of 0.6: Omitting the `__init__.py` is now supported, and it will considered a
+package with an empty `__init__.py` file. Subpackages i.e. dotted names are now
+supported, in addition to the previous top-level names.
 
-Using the `map` method does require a runtime support module.
+See the "Implementation Details" section for more information. This method
+requires no runtime support. Since all methods now wrap this method, none of our
+methods require runtime support anymore.
 
 ## Build the wheel
 
@@ -104,16 +117,5 @@ files that the caller is adding to the wheel as part of its own processes.
 
 ### Runtime dependencies
 
-If the `map` method is used, the resulting wheel will require that the runtime
-support module is installed. To ensure that is the case, dependency metadata
-must be added to the wheel. The `dependencies` method provides the required
-metadata.
-
-```python
-for dep in my_project.dependencies():
-    wheel.metadata.dependencies.add(dep)
-```
-
-Note that if the backend only uses the `add_to_path` method, no runtime support
-is needed, so the `dependencies` method will return an empty list. For safety,
-and to protect against future changes, it should still be called, though.
+No runtime dependencies are required as of 0.6. Please replace all calls to
+`my_project.dependencies()` with `[]`.
