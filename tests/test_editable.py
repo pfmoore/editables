@@ -160,3 +160,17 @@ def test_subpackage_pth(tmp_path, project):
         import a.b.foo
 
         assert Path(a.b.foo.__file__) == project / "foo/__init__.py"
+
+
+@pytest.mark.parametrize("map_method", ["import_hook", "self_replace"])
+def test_map(map_method, tmp_path, project):
+    p = EditableProject(PROJECT_NAME, project)
+    p.map_method = map_method
+    p.map("a", "foo")
+    structure = {name: content for name, content in p.files()}
+    site_packages = tmp_path / "site-packages"
+    build_project(site_packages, structure)
+    with import_state(extra_site=site_packages):
+        import a
+
+        assert Path(a.__file__) == project / "foo/__init__.py"

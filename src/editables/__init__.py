@@ -36,6 +36,12 @@ class EditableProject:
     def __init__(self, project_name: str, project_dir: Union[str, os.PathLike]) -> None:
         if not is_valid(project_name):
             raise ValueError(f"Project name {project_name} is not valid")
+
+        # TODO: Using a public attribute with a magic string value to determine
+        #       the preferred implementation for map() is *not* a good approach.
+        #       Work out something better!
+        self.map_method = "import_hook"  # or "self_replace"
+
         self.project_name = normalize(project_name)
         self.bootstrap = f"_editable_impl_{self.project_name}"
         self.project_dir = Path(project_dir)
@@ -71,11 +77,15 @@ class EditableProject:
             for package, location in self.subpackages.items():
                 yield self.package_redirection(package, location)
         if self.redirections:
-            yield f"{self.bootstrap}.py", self.bootstrap_file()
+            if self.map_method == "import_hook":
+                yield f"{self.bootstrap}.py", self.bootstrap_file()
+            else:
+                for name, target in self.redirections.items():
+                    yield f"{name}.py", self.self_replacer(target)
 
     def dependencies(self) -> List[str]:
         deps = []
-        if self.redirections:
+        if self.redirections and self.map_method == "import_hook":
             deps.append("editables")
         return deps
 
@@ -91,6 +101,22 @@ class EditableProject:
         init_py = package.replace(".", "/") + "/__init__.py"
         content = f"__path__ = [{str(location)!r}]"
         return init_py, content
+
+    def self_replacer(self, target: str) -> str:
+        replacer = [
+            "import importlib.util",
+            "import sys",
+            "",
+            "def import_from_path(module_name, file_path):",
+            "    spec = importlib.util.spec_from_file_location(module_name, file_path)",
+            "    module = importlib.util.module_from_spec(spec)",
+            "    sys.modules[module_name] = module",
+            "    spec.loader.exec_module(module)",
+            "    return module",
+            "",
+            f"import_from_path(__name__, {target!r})",
+        ]
+        return "\n".join(replacer)
 
     def bootstrap_file(self) -> str:
         bootstrap = [
