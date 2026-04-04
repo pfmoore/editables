@@ -112,7 +112,6 @@ class EditableProject:
             "    module = importlib.util.module_from_spec(spec)",
             "    sys.modules[module_name] = module",
             "    spec.loader.exec_module(module)",
-            "    return module",
             "",
             f"import_from_path(__name__, {target!r})",
         ]
