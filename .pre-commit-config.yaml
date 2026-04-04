@@ -1,6 +1,6 @@
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.4.0
+  rev: v6.0.0
   hooks:
   - id: check-added-large-files
   - id: check-builtin-literals
@@ -13,18 +13,18 @@ repos:
   - id: trailing-whitespace
 
 - repo: https://github.com/psf/black
-  rev: 23.1.0
+  rev: 26.3.1
   hooks:
   - id: black
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
   # Ruff version.
-  rev: v0.0.270
+  rev: v0.15.9
   hooks:
     - id: ruff
 
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.3.0
+  rev: v1.20.0
   hooks:
   - id: mypy
     files: src
