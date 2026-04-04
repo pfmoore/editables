@@ -60,9 +60,10 @@ def project(tmp_path):
     project = tmp_path / "project"
     structure = {
         "foo": {
-            "__init__.py": "print('foo')",
-            "bar": {"__init__.py": "print('foo.bar')"},
-            "baz": {"__init__.py": "print('foo.baz')"},
+            "__init__.py": "var = 42",
+            "bar": {"__init__.py": "var = 42"},
+            "baz": {"__init__.py": "var = 42"},
+            "mod": "var = 42"
         }
     }
     build_project(project, structure)
@@ -123,7 +124,10 @@ def test_dependencies(project):
     p = EditableProject(PROJECT_NAME, project)
     assert len(p.dependencies()) == 0
     p.map("foo", "foo")
+    p.map_method = "import_hook"
     assert len(p.dependencies()) == 1
+    p.map_method = "self_replace"
+    assert len(p.dependencies()) == 0
 
 
 def test_simple_pth(tmp_path, project):
@@ -136,6 +140,7 @@ def test_simple_pth(tmp_path, project):
         import foo
 
         assert Path(foo.__file__) == project / "foo/__init__.py"
+        assert foo.var == 42
 
 
 def test_make_project(project, tmp_path):
@@ -160,6 +165,7 @@ def test_subpackage_pth(tmp_path, project):
         import a.b.foo
 
         assert Path(a.b.foo.__file__) == project / "foo/__init__.py"
+        assert a.b.foo.var == 42
 
 
 @pytest.mark.parametrize("map_method", ["import_hook", "self_replace"])
@@ -174,3 +180,4 @@ def test_map(map_method, tmp_path, project):
         import a
 
         assert Path(a.__file__) == project / "foo/__init__.py"
+        assert a.var == 42
