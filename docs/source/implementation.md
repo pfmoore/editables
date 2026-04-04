@@ -59,6 +59,17 @@ simply by setting an appropriate `__path__` value.
 
 The `editables` project implements this approach using the `add_to_subpackage` method.
 
+## Self-replacing modules
+
+Importing a module involves running the module's code to set up the module namespace
+and perform any initialisation actions needed. By installing "bootstrap" code which
+reads the actual module code from its original location, and then executes that code
+and sets the module up to reflect the details of the source rather than the bootstrap
+code, it is possible for a module to look and behave identically to the source file.
+
+When an editable project is configured to use a map method of "self_replace", the
+`editables` project implements this approach with the `map` method.
+
 ## Import hooks
 
 Python's import machinery includes an "import hook" mechanism which in theory
@@ -73,30 +84,48 @@ control over what is exposed to Python. For details of how the hook works,
 readers should investigate the source of the `editables.redirector` module, part
 of the `editables` package.
 
-The `editables` project implements this approach for the `map` method. The
-`.pth` file that gets written loads the redirector and calls a method on it
-to add the requested mappings to it.
+When an editable project is configured to use a map method of "import_hook", the
+`editables` project implements this approach for the `map` method. The `.pth`
+file that gets written loads the redirector and calls a method on it to add the
+requested mappings to it.
 
-There are two downsides to this approach, as compared to the simple `.pth` file
-mechanism - lack of support for implicit namespace packages, and the need for
-runtime support code.
+One downside of this approach is that editable projects using the import hook
+will have an additional runtime dependency. Because the implementation of the
+import hook is non-trivial, it should be shared between all editable installs,
+to avoid conflicts between import hooks, and performance issues from having
+unnecessary numbers of identical hooks running. As a consequence, projects
+installed in this manner will have a runtime dependency on the hook
+implementation (currently distributed as part of `editables`, although it could
+be split out into an independent project). This is not likely to be a
+significant problem in practice, as the dependency is not needed in a production
+(non-editable) install.
 
-The first issue (lack of support for implicit namespace packages) is
-unfortunate, but inherent in how Python (currently) implements the feature.
-Implicit namespace package support is handled as part of how the core import
-machinery does directory scans, and does not interact properly with the import
-hook mechanisms. As a result, the `editables` import hook does not support
-implicit namespace packages, and will probably never be able to do so without
-help from the core Python implementation[^1].
 
-The second issue (the need for runtime support) is more of an inconvenience than
-a major problem. Because the implementation of the import hook is non-trivial,
-it should be shared between all editable installs, to avoid conflicts between
-import hooks, and performance issues from having unnecessary numbers of
-identical hooks running. As a consequence, projects installed in this manner
-will have a runtime dependency on the hook implementation (currently distributed
-as part of `editables`, although it could be split out into an independent
-project).
+## Implicit namespace package support
+
+Implicit namespaces (directories which do not contain an `__init__.py` file) are
+only supported when they are contained within a directory exposed via the
+`add_to_path` or `add_to_subpackage` methods. The `map` method does *not* allow
+mapping an implicit namespace package. This is unfortunate, but inherent in how
+Python (currently) implements the feature. Implicit namespace package support is
+handled as part of how the core import machinery does directory scans, and
+cannot be simulated as part of an import hook or self-replacing module. As a
+result, the `editables` `map` function does not support implicit namespace
+packages, and will probably never be able to do so without help from the core
+Python implementation[^1].
+
+
+## Static Analysis
+
+The `map` and `add_to_subpackage` functions use runtime mechanisms to "graft"
+source files into the package namespace. These methods are dynamic, and as such,
+cannot be detected by static analysis tools like type checkers or IDE
+autocompletion.
+
+If static analysis is important, users should restrict themselves to
+`add_to_path`, which uses standard `.pth` files which are understood by static
+analysis tools.
+
 
 ## Reserved Names
 

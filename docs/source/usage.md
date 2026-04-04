@@ -21,7 +21,7 @@ project = EditableProject("myproject")
 ## Specify what to expose
 
 Once the project has been created, the backend can specify which files should be
-exposed when the editable install is done. There are two mechanisms currently
+exposed when the editable install is done. The following mechanisms are currently
 implemented for this.
 
 ### Adding a directory to `sys.path`
@@ -34,8 +34,7 @@ project.add_to_path("src")
 ```
 
 This will simply write the given directory into the `.pth` file added to the
-wheel. See the "Implementation Details" section for more information. Note that
-this method requires no runtime support.
+wheel. See the "Implementation Details" section for more information.
 
 ### Adding a directory as package content
 
@@ -79,7 +78,17 @@ project.map("mypackage", "src/mypackage")
 The directory *must* be a Python package - i.e., it must contain an `__init__.py`
 file, and the target package name must be a top-level name, not a dotted name.
 
-Using the `map` method does require a runtime support module.
+The `map` method does *not* support mapping implicit namespace packages
+(directories which do not contain an `__init__.py` file).
+
+There are two different ways that the `map` method can be implemented at
+runtime. To choose which one to use, set the `map_method` attribute on your
+`EditableProject` instance. The two methods are `import_hook` (the default) and
+`self_replace`. For details on the differences between the two methods, see the
+"Implementation Details" section of the documentation.
+
+Using the `map` method with the `import_hook` method requires a runtime support
+module.
 
 ## Build the wheel
 
@@ -104,16 +113,15 @@ files that the caller is adding to the wheel as part of its own processes.
 
 ### Runtime dependencies
 
-If the `map` method is used, the resulting wheel will require that the runtime
-support module is installed. To ensure that is the case, dependency metadata
-must be added to the wheel. The `dependencies` method provides the required
-metadata.
+If the `map` method is used with the "import_hook" implementation, the resulting
+wheel will require that the runtime support module is installed. To ensure that
+is the case, dependency metadata must be added to the wheel. The `dependencies`
+method provides the required metadata.
 
 ```python
 for dep in my_project.dependencies():
     wheel.metadata.dependencies.add(dep)
 ```
 
-Note that if the backend only uses the `add_to_path` method, no runtime support
-is needed, so the `dependencies` method will return an empty list. For safety,
-and to protect against future changes, it should still be called, though.
+Note that when runtime support is not needed, the `dependencies` method will
+return an empty list. So it is safe (and recommended) to call it in all cases.
