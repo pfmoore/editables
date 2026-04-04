@@ -38,7 +38,7 @@ def import_state(extra_site=None):
     orig_path = list(sys.path)
     orig_meta_path = list(sys.meta_path)
     orig_path_hooks = list(sys.path_hooks)
-    orig_path_importer_cache = sys.path_importer_cache
+    orig_path_importer_cache = sys.path_importer_cache.copy()
     if extra_site:
         sys.path.append(extra_site)
         site.addsitedir(extra_site)
