@@ -32,9 +32,9 @@ def build_project(target, structure):
 #   site.addsitedir("somedir")
 #   Check stuff is visible
 @contextlib.contextmanager
-def import_state(extra_site=None):
+def import_state(project, extra_site=None):
     extra_site = os.fspath(extra_site)
-    orig_modules = set(sys.modules.keys())
+    orig_modules = sys.modules.copy()
     orig_path = list(sys.path)
     orig_meta_path = list(sys.meta_path)
     orig_path_hooks = list(sys.path_hooks)
@@ -42,12 +42,14 @@ def import_state(extra_site=None):
     if extra_site:
         sys.path.append(extra_site)
         site.addsitedir(extra_site)
+    # Make sure we don't use this project unless we say we need it
+    if "editables" in sys.modules and "editables" not in project.dependencies():
+        del sys.modules["editables"]
     try:
         yield
     finally:
-        remove = [key for key in sys.modules if key not in orig_modules]
-        for key in remove:
-            del sys.modules[key]
+        sys.modules.clear()
+        sys.modules.update(orig_modules)
         sys.path[:] = orig_path
         sys.meta_path[:] = orig_meta_path
         sys.path_hooks[:] = orig_path_hooks
@@ -63,7 +65,7 @@ def project(tmp_path):
             "__init__.py": "var = 42",
             "bar": {"__init__.py": "var = 42"},
             "baz": {"__init__.py": "var = 42"},
-            "mod": "var = 42"
+            "mod.py": "var = 42"
         }
     }
     build_project(project, structure)
@@ -86,6 +88,17 @@ def test_not_toplevel(project):
     with pytest.raises(EditableException):
         p.map("foo.bar", "foo/bar")
 
+
+def test_map_method(project):
+    p = EditableProject(PROJECT_NAME, project)
+    assert p.map_method == "import_hook"
+    assert p.use_hook()
+    p.map_method = "self_replace"
+    assert not p.use_hook()
+    p.map_method = "import_hook"
+    assert p.use_hook()
+    with pytest.raises(ValueError):
+        p.map_method = "invalid_value"
 
 @pytest.mark.parametrize(
     "name,expected",
@@ -136,7 +149,7 @@ def test_simple_pth(tmp_path, project):
     structure = {name: content for name, content in p.files()}
     site_packages = tmp_path / "site-packages"
     build_project(site_packages, structure)
-    with import_state(extra_site=site_packages):
+    with import_state(p, extra_site=site_packages):
         import foo
 
         assert Path(foo.__file__) == project / "foo/__init__.py"
@@ -149,10 +162,11 @@ def test_make_project(project, tmp_path):
     structure = {name: content for name, content in p.files()}
     site_packages = tmp_path / "site-packages"
     build_project(site_packages, structure)
-    with import_state(extra_site=site_packages):
+    with import_state(p, extra_site=site_packages):
         import foo
 
         assert Path(foo.__file__) == project / "foo/__init__.py"
+        assert foo.var == 42
 
 
 def test_subpackage_pth(tmp_path, project):
@@ -161,7 +175,7 @@ def test_subpackage_pth(tmp_path, project):
     structure = {name: content for name, content in p.files()}
     site_packages = tmp_path / "site-packages"
     build_project(site_packages, structure)
-    with import_state(extra_site=site_packages):
+    with import_state(p, extra_site=site_packages):
         import a.b.foo
 
         assert Path(a.b.foo.__file__) == project / "foo/__init__.py"
@@ -176,7 +190,7 @@ def test_map(map_method, tmp_path, project):
     structure = {name: content for name, content in p.files()}
     site_packages = tmp_path / "site-packages"
     build_project(site_packages, structure)
-    with import_state(extra_site=site_packages):
+    with import_state(p, extra_site=site_packages):
         import a
 
         assert Path(a.__file__) == project / "foo/__init__.py"

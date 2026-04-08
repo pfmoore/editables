@@ -10,6 +10,20 @@ __all__ = (
 
 __version__ = "0.5"
 
+# Self-replacing module code
+SELF_REPLACER = """\
+import importlib.util
+import sys
+
+def import_from_path(module_name, file_path):
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+
+import_from_path(__name__, {target!r})
+"""
+
 
 # Check if a project name is valid, based on PEP 426:
 # https://peps.python.org/pep-0426/#name
@@ -40,7 +54,7 @@ class EditableProject:
         # TODO: Using a public attribute with a magic string value to determine
         #       the preferred implementation for map() is *not* a good approach.
         #       Work out something better!
-        self.map_method = "import_hook"  # or "self_replace"
+        self._map_method = "import_hook"  # or "self_replace"
 
         self.project_name = normalize(project_name)
         self.bootstrap = f"_editable_impl_{self.project_name}"
@@ -49,13 +63,26 @@ class EditableProject:
         self.path_entries: List[Path] = []
         self.subpackages: Dict[str, Path] = {}
 
+    @property
+    def map_method(self):
+        return self._map_method
+
+    @map_method.setter
+    def map_method(self, value):
+        if value not in ("import_hook", "self_replace"):
+            raise ValueError(f"Unsupported map method: {value}")
+        self._map_method = value
+
+    def use_hook(self):
+        return self._map_method == "import_hook"
+
     def make_absolute(self, path: Union[str, os.PathLike]) -> Path:
         return (self.project_dir / path).resolve()
 
     def map(self, name: str, target: Union[str, os.PathLike]) -> None:
-        if "." in name:
+        if "." in name and self.use_hook():
             raise EditableException(
-                f"Cannot map {name} as it is not a top-level package"
+                f"Cannot map {name} with an import hook as it is not a top-level package"
             )
         abs_target = self.make_absolute(target)
         if abs_target.is_dir():
@@ -72,12 +99,14 @@ class EditableProject:
         self.subpackages[package] = self.make_absolute(dirname)
 
     def files(self) -> Iterable[Tuple[str, str]]:
-        yield f"{self.project_name}.pth", self.pth_file()
+        pth_file = self.pth_file()
+        if pth_file:
+            yield f"{self.project_name}.pth", pth_file
         if self.subpackages:
             for package, location in self.subpackages.items():
                 yield self.package_redirection(package, location)
         if self.redirections:
-            if self.map_method == "import_hook":
+            if self.use_hook():
                 yield f"{self.bootstrap}.py", self.bootstrap_file()
             else:
                 for name, target in self.redirections.items():
@@ -85,13 +114,13 @@ class EditableProject:
 
     def dependencies(self) -> List[str]:
         deps = []
-        if self.redirections and self.map_method == "import_hook":
+        if self.redirections and self.use_hook():
             deps.append("editables")
         return deps
 
     def pth_file(self) -> str:
         lines = []
-        if self.redirections:
+        if self.redirections and self.use_hook():
             lines.append(f"import {self.bootstrap}")
         for entry in self.path_entries:
             lines.append(str(entry))
@@ -103,19 +132,7 @@ class EditableProject:
         return init_py, content
 
     def self_replacer(self, target: str) -> str:
-        replacer = [
-            "import importlib.util",
-            "import sys",
-            "",
-            "def import_from_path(module_name, file_path):",
-            "    spec = importlib.util.spec_from_file_location(module_name, file_path)",
-            "    module = importlib.util.module_from_spec(spec)",
-            "    sys.modules[module_name] = module",
-            "    spec.loader.exec_module(module)",
-            "",
-            f"import_from_path(__name__, {target!r})",
-        ]
-        return "\n".join(replacer)
+        return SELF_REPLACER.format(target=target)
 
     def bootstrap_file(self) -> str:
         bootstrap = [
