@@ -1,7 +1,7 @@
 import os
 import re
 from pathlib import Path
-from typing import Dict, Iterable, List, Tuple, Union
+from typing import Dict, Iterable, List, Literal, Tuple, Union
 
 __all__ = (
     "EditableProject",
@@ -54,7 +54,7 @@ class EditableProject:
         # TODO: Using a public attribute with a magic string value to determine
         #       the preferred implementation for map() is *not* a good approach.
         #       Work out something better!
-        self._map_method = "import_hook"  # or "self_replace"
+        self._map_method: Literal["import_hook", "self_replace"] = "import_hook"  # or "self_replace"
 
         self.project_name = normalize(project_name)
         self.bootstrap = f"_editable_impl_{self.project_name}"
@@ -64,16 +64,16 @@ class EditableProject:
         self.subpackages: Dict[str, Path] = {}
 
     @property
-    def map_method(self):
+    def map_method(self) -> Literal["import_hook", "self_replace"]:
         return self._map_method
 
     @map_method.setter
-    def map_method(self, value):
+    def map_method(self, value: Literal["import_hook", "self_replace"]):
         if value not in ("import_hook", "self_replace"):
             raise ValueError(f"Unsupported map method: {value}")
         self._map_method = value
 
-    def use_hook(self):
+    def use_hook(self) -> bool:
         return self._map_method == "import_hook"
 
     def make_absolute(self, path: Union[str, os.PathLike]) -> Path:
