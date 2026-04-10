@@ -103,16 +103,19 @@ significant problem in practice, as the dependency is not needed in a production
 
 ## Implicit namespace package support
 
-Implicit namespaces (directories which do not contain an `__init__.py` file) are
-only supported when they are contained within a directory exposed via the
-`add_to_path` or `add_to_subpackage` methods. The `map` method does *not* allow
-mapping an implicit namespace package. This is unfortunate, but inherent in how
-Python (currently) implements the feature. Implicit namespace package support is
-handled as part of how the core import machinery does directory scans, and
-cannot be simulated as part of an import hook or self-replacing module. As a
-result, the `editables` `map` function does not support implicit namespace
-packages, and will probably never be able to do so without help from the core
-Python implementation[^1].
+The `map` method has some limitations in its support of implicit namespace
+packages (directories which do not contain an `__init__.py` file):
+
+1. The `target` in the `map` call cannot be a namespace package.
+2. The `name` in the `map` call cannot be a dotted name if the "import_hook"
+   method is used. If the "self_replace" method is used, the name can be dotted,
+   and will be interpreted as a module in a namespace package (so `pkg.foo`
+   will be module `foo` in the namespace package `pkg`).
+
+The limitations are unfortunate, but are inherent in how Python (currently)
+implements the feature. Implicit namespace package support is handled as part of
+how the core import machinery does directory scans, and cannot be simulated as
+part of an import hook or self-replacing module[^1].
 
 
 ## Static Analysis
@@ -134,12 +137,15 @@ wheel. These should be considered reserved. While backends would not normally
 add extra files to wheels generated using this library, they are allowed to do
 so, as long as those files don't use any of the reserved names.
 
-1. `<project_name>.pth`
+1. `_editable_impl_<project_name>*.pth`
 2. `_editable_impl_<project_name>*.py`
 
 Here, `<project_name>` is the name supplied to the `EditableProject` constructor,
 normalised as described in [PEP 503](https://peps.python.org/pep-0503/#normalized-names),
 with dashes replaced by underscores.
+
+The names used can be changed by setting `project.pth_name` and `project.bootstrap_name`
+respectively (although this should not normally be necessary).
 
 [^1]: The issue is related to how the same namespace can be present in multiple
       `sys.path` entries, and must be dynamically recomputed if the filesystem

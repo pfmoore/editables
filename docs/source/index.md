@@ -13,7 +13,6 @@ caption: Contents
 usage
 scope
 implementation
-use-cases
 ```
 
 # Indices and tables
