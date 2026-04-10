@@ -57,7 +57,8 @@ class EditableProject:
         self._map_method: Literal["import_hook", "self_replace"] = "import_hook"  # or "self_replace"
 
         self.project_name = normalize(project_name)
-        self.bootstrap = f"_editable_impl_{self.project_name}"
+        self.pth_name = f"_editable_impl_{self.project_name}"
+        self.bootstrap_name = f"_editable_impl_{self.project_name}"
         self.project_dir = Path(project_dir)
         self.redirections: Dict[str, str] = {}
         self.path_entries: List[Path] = []
@@ -101,13 +102,13 @@ class EditableProject:
     def files(self) -> Iterable[Tuple[str, str]]:
         pth_file = self.pth_file()
         if pth_file:
-            yield f"{self.project_name}.pth", pth_file
+            yield f"{self.pth_name}.pth", pth_file
         if self.subpackages:
             for package, location in self.subpackages.items():
                 yield self.package_redirection(package, location)
         if self.redirections:
             if self.use_hook():
-                yield f"{self.bootstrap}.py", self.bootstrap_file()
+                yield f"{self.bootstrap_name}.py", self.bootstrap_file()
             else:
                 for name, target in self.redirections.items():
                     yield f"{name}.py", self.self_replacer(target)
@@ -121,7 +122,7 @@ class EditableProject:
     def pth_file(self) -> str:
         lines = []
         if self.redirections and self.use_hook():
-            lines.append(f"import {self.bootstrap}")
+            lines.append(f"import {self.bootstrap_name}")
         for entry in self.path_entries:
             lines.append(str(entry))
         return "\n".join(lines)
