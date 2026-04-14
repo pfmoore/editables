@@ -1,7 +1,7 @@
 import os
 import re
 from pathlib import Path
-from typing import Dict, Iterable, List, Literal, Tuple, Union
+from typing import Dict, Iterable, List, Tuple, Union
 
 __all__ = (
     "EditableProject",
@@ -51,9 +51,7 @@ class EditableProject:
         if not is_valid(project_name):
             raise ValueError(f"Project name {project_name} is not valid")
 
-        self._map_method: Literal["import_hook", "self_replace"] = (
-            "import_hook"  # or "self_replace"
-        )
+        self._map_method = "import_hook"  # or "self_replace"
 
         self.project_name = normalize(project_name)
         self.pth_name = f"_editable_impl_{self.project_name}"
@@ -64,11 +62,11 @@ class EditableProject:
         self.subpackages: Dict[str, Path] = {}
 
     @property
-    def map_method(self) -> Literal["import_hook", "self_replace"]:
+    def map_method(self) -> str:
         return self._map_method
 
     @map_method.setter
-    def map_method(self, value: Literal["import_hook", "self_replace"]):
+    def map_method(self, value: str):
         if value not in ("import_hook", "self_replace"):
             raise ValueError(f"Unsupported map method: {value}")
         self._map_method = value
