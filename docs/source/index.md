@@ -11,8 +11,8 @@ maxdepth: 2
 caption: Contents
 ---
 usage
+scope
 implementation
-use-cases
 ```
 
 # Indices and tables
