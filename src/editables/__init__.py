@@ -51,9 +51,6 @@ class EditableProject:
         if not is_valid(project_name):
             raise ValueError(f"Project name {project_name} is not valid")
 
-        # TODO: Using a public attribute with a magic string value to determine
-        #       the preferred implementation for map() is *not* a good approach.
-        #       Work out something better!
         self._map_method: Literal["import_hook", "self_replace"] = "import_hook"  # or "self_replace"
 
         self.project_name = normalize(project_name)
