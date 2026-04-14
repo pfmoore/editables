@@ -5,7 +5,7 @@
 * Add a new "self_replace" strategy for `map` (and name the old
   strategy "import_hook"). Based on an idea by Daniel Tang in
   [#40](https://github.com/pfmoore/editables/pull/40).
-* Rename the generated `.pth` file to `_editable_impl<project>.pth`
+* Rename the generated `.pth` file to `_editable_impl_<project>.pth`
   and document that it is possible to customise the file names used.
 * Rework the documentataion, replacing the "use cases" section with
   an expanded and less opinionated "scope" section.
