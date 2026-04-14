@@ -51,7 +51,9 @@ class EditableProject:
         if not is_valid(project_name):
             raise ValueError(f"Project name {project_name} is not valid")
 
-        self._map_method: Literal["import_hook", "self_replace"] = "import_hook"  # or "self_replace"
+        self._map_method: Literal["import_hook", "self_replace"] = (
+            "import_hook"  # or "self_replace"
+        )
 
         self.project_name = normalize(project_name)
         self.pth_name = f"_editable_impl_{self.project_name}"

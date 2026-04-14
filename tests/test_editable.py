@@ -65,7 +65,7 @@ def project(tmp_path):
             "__init__.py": "var = 42",
             "bar": {"__init__.py": "var = 42"},
             "baz": {"__init__.py": "var = 42"},
-            "mod.py": "var = 42"
+            "mod.py": "var = 42",
         }
     }
     build_project(project, structure)
@@ -99,6 +99,7 @@ def test_map_method(project):
     assert p.use_hook()
     with pytest.raises(ValueError):
         p.map_method = "invalid_value"
+
 
 @pytest.mark.parametrize(
     "name,expected",
